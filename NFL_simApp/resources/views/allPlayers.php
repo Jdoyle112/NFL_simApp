@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html>
 
-	<head>
-	</head>
 
 	<body>
 		<h1>NFL List of Players</h1>
@@ -84,6 +82,8 @@
 				</tbody>
 			</table>
 		</div>
+
+
 
 	</body>
 

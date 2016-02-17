@@ -1,35 +1,31 @@
 <?php
 
+require_once("schedule.php");
+
 class Game {
 
 // TO-DO
 
-	// sim team and player stats
-	// save team and player stats (line up player stats index with $player)
+	// save player stats (line up player stats index with $player)
 	// add stats to account for reserves and subs
 	// update schedule
 	// have defense ratings influence play calling % (run vs pass)
 	// add kicking
-	// condense code (if statements, queries, home and away, ect.)
-	// convert player arrays kets to strings and values to int's
-	// condense queries to array and and statements using query values to use array values (or put in loop)
 
 
 	public $homeTeam;
 	public $awayTeam;
-	public $homeScore;
-	public $awayScore;
+	public $score;
 	public $receptions = 0;
 	public $playerStats;
 	public $touchdown;
 	public $intercept;
-	public $homeFumble = 0;
+	public $fumbles;
 	public $Td;
 	public $rushTd;
 	public $passTd;
 	public $passYrds;
 	public $totRecYrds;
-	public $homeTotYrds;
 	public $rushYrds;
 	public $playsNum;
 	public $defTD;
@@ -61,10 +57,9 @@ class Game {
 	public $rushOvr;
 
 	public $seasonId;
-	public $week;
-	public $weeksGames;
 	public $leagueTeams;
 	public $team;
+	public $gameId;
 
 
 
@@ -81,7 +76,7 @@ class Game {
 		$results = $db->query($sql);
 		$leagueTeams = $results->fetchAll(PDO::FETCH_ASSOC);
 
-		// get 2 teams (team_id)
+		// get 2 teams (will change when schedule created)
 		echo $this->homeTeam = $leagueTeams[0]["team_id"];	// 0
 		echo $this->awayTeam = $leagueTeams[1]["team_id"];	// 1
 
@@ -90,7 +85,7 @@ class Game {
 		$this->playerStats = array(
 			'yards' => 0,
 			'completions' => 0,
-			'TD' => 0,
+			'td' => 0,
 			'interceptions' => 0,
 			'fumbles' => 0,
 			'receptions' => 0,
@@ -111,10 +106,11 @@ class Game {
 		foreach ($this->team as $key => $value) {
 			array_push($this->team[$key]['playerStats'] = $this->playerStats);
 		}
-		
-		//echo '<pre>';
-		//var_dump($this->team);
-	}
+
+		// need to create game id's dynamically (when creating schedule, auto increment game id's and pull from schedule table)
+		$this->gameId = 0;
+
+	}	// end getGame
 
 
 	public function simGame(){
@@ -123,9 +119,8 @@ class Game {
 		// need to add overtime if/else
 
 		// call stat functions
-		//$this->simPlayerStats();
-		//$this->getTeamStats();
-		$this->getPlayerStats();
+		$this->getPlayerStats($this->gameId);
+		$this->getTeamStats($this->gameId);
 
 		// update TeamStats W/L
 		if($this->homeScore > $this->awayScore){	// wrap in if statement to check if isset (1st game of season)
@@ -219,6 +214,7 @@ class Game {
 		$this->recPlayerStats($receivers, $passYrds);
 		$this->runPlayerStats($this->runPlays, $runningBacks, $this->p);
 		$this->defStats($defPlayers, $this->p, $this->r);
+		$this-> fumble();
 		// $this->fumble();		call when player yards stats are ready
 
 	}	// end simPlayerStats
@@ -277,9 +273,9 @@ class Game {
 		for($t = 0; $t < 2; $t++){
 			$this->qbYPA[] = $qbs[$t][0][2];
 			$this->qbIntRt[] = $qbs[$t][0][3];
-			$this->qbCompNum[] = round((($this->qbCompPct[$t] + rand(-10, 10)) / 100) * $passPlays[$t]); 	// # of completions
+			$this->qbCompNum[] = round((($this->qbCompPct[$t] * $p[$t] + rand(-10, 10)) / 100) * $passPlays[$t]); 	// # of completions
 			$chance = rand(-5, 5) / 10;
-			$this->qbYPAr[$t] = ($this->qbYPA[$t] * $p[$t]) + $chance;
+			$this->qbYPAr[$t] = ($this->qbYPA[$t] * $p[$t]) + $chance;		// yards per attempt
 			for($x = 0; $x < $passPlays[$t]; $x++){
 				$this->interception($this->qbIntRt, $t, $this->p);
 				$this->td('pass', $t, $this->p, $this->r);
@@ -293,9 +289,8 @@ class Game {
 
 
 	public function recPlayerStats($receivers, $passYrds){
-
-		// need to multiple things by $p
 		
+		// loop through each receiver adding his rec rating to a total # and assign receptions based on % of total team rec each indiv player holds
 		for($t = 0; $t < 2; $t++){	
 			for($x = 0; $x < $this->qbCompNum[$t]; $x++){
 				$a = rand(1, $this->recOvr[$t]);
@@ -325,7 +320,28 @@ class Game {
 				$this->team[$t][$player]['playerStats']['yards'] = $recYrds[$t];
 				$player++;
 				$this->totRecYrds[$t] += $recYrds[$t];
+
 			}
+		}
+
+		// chooses rand player with min 1 catch and assigns TD (need to to make more accurate for # of receptions and ovr)
+		$player = 0;
+		for($t = 0; $t < 2; $t++){
+			for($i = 0; $i < $this->passTd[$t]; $i++){ 
+				do{
+					$player = array_rand($this->team[$t], 1);
+				}while($this->team[$t][$player]['playerStats']['receptions'] < 1);
+				$this->team[$t][$player]['playerStats']['td'] += 1;
+			}
+		}
+
+
+		// push qb stats to array
+		for($t = 0; $t < 2; $t++){
+			$this->team[$t][0]['playerStats']['yards'] = $this->totRecYrds[$t];		// pass yards pushed to qb stats array
+			$this->team[$t][0]['playerStats']['completions'] = $this->qbCompNum[$t];		// completions pushed to qb stats array
+			$this->team[$t][0]['playerStats']['interceptions'] = $this->intercept[$t];		// pass interceptions pushed to qb stats array
+			$this->team[$t][0]['playerStats']['td'] = $this->passTd[$t];		// pass tds pushed to qb stats array
 		}
 
 		// need to add td's
@@ -347,8 +363,6 @@ class Game {
 			}
 		}
 
-		// need to add td's and push stats to array
-
 	}	// end runPlayerStats
 
 
@@ -364,24 +378,27 @@ class Game {
 	}	// end interception
 
 
-	public function fumble($t){
+	public function fumble(){
+
+		// need to simulate on a per play basis
 
 		// calculates odds of a fumble occuring (60%) and assign fumble to random player with minimum 1 yard in stat line
-		$chance = rand(1, 100);
-		if($chance > 40){
-			do{
-				$player = $this->homeRoster[array_rand($this->homeRoster)];
-			}while($player['playerStats']['yards'] == 0);
-			$player['playerStats']['fumbles'] = 1;
-			/*
-			do{
-				$dPlayer = $this->awayRoster[array_rand($this->awayRoster)];
-			}while($dPlayer['playerStats']['tackles'] == 0);
-			$dPlayer['playerStats']['fumbles'] = 1;
-			*/
-			$this->homeFumbles++;
+		for($t = 0; $t < 2; $t++){
+			$chance = rand(1, 100);
+			$c = rand(-10, 10);
+			if($chance > (40 + $c)){
+				do{
+					$player = $this->team[$t][array_rand($this->team[$t])];
+				}while($player['playerStats']['yards'] == 0);
+				$player['playerStats']['fumbles'] = 1;
 
-			// need to add fumble for rand defense player and update team stats		
+				do{
+					$dPlayer = $this->team[$t][array_rand($this->team[$t])];
+				}while($dPlayer['playerStats']['tackles'] == 0);
+				$dPlayer['playerStats']['fumbles'] = 1;
+				$this->fumbles[$t] += 1;
+				// need to add fumble for rand defense player and update team stats		
+			}
 		}
 
 	}	// end fumble
@@ -508,20 +525,22 @@ class Game {
 		}
 
 		// defensive TD's (add to box score)
-		$chance = rand(1, 100);
-		if($chance < 17){
-			$this->defTD = 1;
+		for ($t=0; $t < 2; $t++) { 
+			$chance = rand(1, 100);
+			if($chance < 17){
+				$this->defTD[$t] = 1;
+			}
 		}
 
 
 	}	// end defStats
 
 
-	public function getPlayerStats(){
-
+	public function getPlayerStats($gameId){
+		require("../../../config.php");	
 		$this->simPlayerStats();
 
-		// passing offense
+		// passing offense (push to array)
 		echo '<br>' . "Number of home pass plays: " . $this->passPlays[0] . "<br>";
 		echo "Number of away pass plays: " . $this->passPlays[1] . "<br>";
 		echo "home interceptions: " . $this->intercept[0] . '<br>';
@@ -632,48 +651,92 @@ class Game {
 		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['playerStats']['sacks'] . "<br>";
 
 
+		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['playerStats']['tackles'] . " tackles" . "<br>";
+
+		// insert into PlayerStatsGame db (loop through each player, and insert their stats to db)
+		for ($t=0; $t < 2; $t++) { 
+			foreach ($this->team[$t] as $key1 => $value) {
+				foreach ($value as $playerAttrs => $statVals) {
+					echo '<pre>';
+					// set the played id to be pushed to db
+					if($playerAttrs == "player_id"){
+						$playerId = $statVals;
+					}
+					
+					$stKeys = "".implode(", ", array_keys($statVals))."";
+					$stVals = "'".implode("', '", array_values($statVals))."'";	
+					// if stat exists, push to db for each player
+					if($stKeys !== ''){
+						$sql="INSERT INTO PlayerStatsGame (game_id, player_id, $stKeys) VALUES ('$gameId', '$playerId', $stVals)";
+						print $sql . "<br>";
+						$db->exec($sql);
+						echo "new record success" . '<br>';
+					}
+				}
+			}
+		}
+
+
 	}	// end getPlayerStats
 
 
 
-	public function getTeamStats(){
+	public function getTeamStats($gameId, $homeTeam, $awayTeam){
+		require("../../../config.php");	
+
+		// need to add fg's 
 
 		// home and away score
-		if($this->defTD == 1){
-			$this->homeScore = ($this->homeTd * 7) + 7;
-		} else {
-			$this->homeScore = ($this->homeTd * 7);
+		for($t = 0; $t < 2; $t++){
+			if($this->defTD[$t] == 1){
+				$this->score[$t] = ($this->Td[$t] * 7) + 7;
+			} else {
+				$this->score[$t] = ($this->Td[$t] * 7);
+			}	
+			$totYrds[$t] = round(($this->totRecYrds[$t] + $this->rushYrds[$t]));
+			$turnovers[$t] = ($this->intercept[$t] + $this->fumbles[$t]);
 		}
+
+		$homeScore = $this->score[0];
+		$awayScore = $this->score[1];
+		$homeTotYrds = $totYrds[0];
+		$awayTotYrds = $totYrds[1];
+		$homeTurnovers = $turnovers[0];
+		$awayTurnovers = $turnovers[1];
+		$homeRushYrds = $this->rushYrds[0];
+		$awayRushYrds = $this->rushYrds[1];
+		$homePassYrds = $this->totRecYrds[0];
+		$awayPassYrds = $this->totRecYrds[1];
+		$homeTd = $this->Td[0];
+		$awayTd = $this->Td[1];
+		$homeSack = $this->sack[0];
+		$awaySack = $this->sack[1];
+		$homeTotPlays = $this->playsNum[0];
+		$awayTotPlays = $this->playsNum[1];
+
+
+		echo "Home Team final score: " . $this->score[0] . "<br>";
+		echo "Away Team final score: " . $this->score[1] . "<br>";		
+		echo "Home Total Yards: " . $homeTotYrds . "<br>";
+		echo "Away Total Yards: " . $awayTotYrds . "<br>";
+		echo "Home Turnovers: " . $homeTurnovers . "<br>";
+		echo "Away Turnovers: " . $awayTurnovers . "<br>";
+		echo "Home Rush Yards: " . $homeRushYrds . "<br>";
+		echo "Away Rush Yards: " . $awayRushYrds . "<br>";
+		echo "Home Pass Yards: " . $homePassYrds . "<br>";
+		echo "Away Pass Yards: " . $awayPassYrds . "<br>";
+		echo "Home TD's: " . $homeTd . "<br>";
+		echo "Away TD's: " . $awayTd . "<br>";
+		echo "Home Sacks: " . $homeSack . "<br>";
+		echo "Away Sacks: " . $awaySack . "<br>";
+		echo "Home Total Plays: " . $homeTotPlays . "<br>";
+		echo "Away Total Plays: " . $awayTotPlays . "<br>";
+
+
+		// push to db (add home and away team id)
+		$sql = "INSERT INTO GameStats (game_id, home_score, away_score, home_yards, away_yards, home_turnovers, away_turnovers, home_total_plays, away_total_plays, home_rushing_yards, away_rushing_yards, home_passing_yards, away_passing_yards, home_tds, away_tds, home_sacks, away_sacks) VALUES ('$gameId', '$homeScore', '$awayScore', '$homeTotYrds', '$awayTotYrds', '$homeTurnovers', '$awayTurnovers', '$homeTotPlays', '$awayTotPlays', '$homeRushYrds', '$awayRushYrds', '$homePassYrds', '$awayPassYrds', '$homeTd', '$awayTd', '$homeSack', '$awaySack')";
+		$db->exec($sql);
 		
-		//$this->awayScore = $this->awayTd;
-		echo "Home Team final score: " . $this->homeScore . "<br>";
-
-		// home and away yards
-		$this->homeTotYrds = ($this->totRecYrds + $this->rushYrds);
-		echo "Home Total Yards: " . round($this->homeTotYrds) . "<br>";
-
-		// home and away turnovers
-		$this->homeTurnovers = ($this->intercept + $this->homeFumbles);
-		echo "Home Turnovers: " . $this->homeTurnovers . "<br>";
-
-		// home aand away total plays
-		$this->playsNum[$t];
-		echo "Home Total Plays: " . $this->playsNum[$t] . "<br>";		
-
-		// home and away rush and pass yards
-		$this->totRecYrds;
-		echo "Home Passing Yards: " . round($this->totRecYrds) . "<br>";
-		$this->rushYrds;
-		echo "Total Rush Yards: " . round($this->rushYrds) . "<br>";
-
-		// home and away td's
-		echo "Home Touchdowns: " . $this->homeTd . "<br>";
-
-		// home and away sacks
-
-
-		// push to db
-
 
 	} 	// end getTeamStats
 
