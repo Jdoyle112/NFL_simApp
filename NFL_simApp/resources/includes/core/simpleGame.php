@@ -1,7 +1,5 @@
 <?php
 
-require_once("schedule.php");
-
 class Game {
 
 // TO-DO
@@ -11,6 +9,11 @@ class Game {
 	// update schedule
 	// have defense ratings influence play calling % (run vs pass)
 	// add kicking
+	// add injuries
+	// rb stats
+	// qb rush stats
+	// overtime
+	// sack multiplier for pass rushers
 
 
 	public $homeTeam;
@@ -51,6 +54,7 @@ class Game {
 	public $passOvr;
 	public $passAdv;
 	public $qbYPA;
+	public $qbYPAr;
 	public $homeTurnovers;
 	public $totTackles;
 	public $qbIntRt;
@@ -59,26 +63,21 @@ class Game {
 	public $seasonId;
 	public $leagueTeams;
 	public $team;
-	public $gameId;
+	public $key;
+	public $playerId;
 
-
-
-	public function getGame($seasonId, $week){
-		require("../../../config.php");
+	public function getGame($gameId){
+		require(ROOT_PATH . "config.php");
 		
 		// get game
-		$sql = "SELECT * FROM Schedule WHERE season_id = $seasonId AND week = $week AND completed = 0";
+		$sql = "SELECT * FROM Schedule WHERE game_id = $gameId";
 		$results = $db->query($sql);
-		$weeksGames = $results->fetchAll(PDO::FETCH_ASSOC);
-
-		// get teams
-		$sql = "SELECT * FROM Teams INNER JOIN Schedule ON Schedule.season_id = Teams.season_id";
-		$results = $db->query($sql);
-		$leagueTeams = $results->fetchAll(PDO::FETCH_ASSOC);
-
-		// get 2 teams (will change when schedule created)
-		echo $this->homeTeam = $leagueTeams[0]["team_id"];	// 0
-		echo $this->awayTeam = $leagueTeams[1]["team_id"];	// 1
+		$game = $results->fetchAll(PDO::FETCH_ASSOC);
+		foreach ($game as $value) {
+			$this->homeTeam = $value['home_team'];
+			$this->awayTeam = $value['away_team'];
+			$this->seasonId = $value['season_id'];
+		}
 
 		$this->team = array();
 
@@ -94,35 +93,42 @@ class Game {
 			'tackles' => 0,
 		);
 	
-		$sql = "SELECT DISTINCT Players.player_id, Players.first_name, Players.last_name, Players.pos_abrv, Players.overall, Players.comp_pctR, Players.ypaR, Players.int_playR, Players.qb_rushR, Players.ypcR, Players.recR, Players.avgR, Players.pass_blockR, Players.run_blockR, Players.run_dR, Players.pass_dR, Players.rush_dR FROM Players, TeamPlayers WHERE TeamPlayers.team_id = 0";
+		$sql = "SELECT Players.player_id, Players.first_name, Players.last_name, Players.pos_abrv, Players.overall, Players.comp_pctR, Players.ypaR, Players.int_playR, Players.qb_rushR, Players.ypcR, Players.recR, Players.avgR, Players.pass_blockR, Players.run_blockR, Players.run_dR, Players.pass_dR, Players.rush_dR FROM Players INNER JOIN TeamPlayers ON Players.player_id = TeamPlayers.player_id WHERE TeamPlayers.team_id = $this->homeTeam";
 		$results = $db->query($sql);
 		$this->team[0] = $results->fetchAll(PDO::FETCH_ASSOC);
 						
-		$sql = "SELECT DISTINCT Players.player_id, Players.first_name, Players.last_name, Players.pos_abrv, Players.overall, Players.comp_pctR, Players.ypaR, Players.int_playR, Players.qb_rushR, Players.ypcR, Players.recR, Players.avgR, Players.pass_blockR, Players.run_blockR, Players.run_dR, Players.pass_dR, Players.rush_dR FROM Players, TeamPlayers WHERE TeamPlayers.team_id = 1";
+		$sql = "SELECT Players.player_id, Players.first_name, Players.last_name, Players.pos_abrv, Players.overall, Players.comp_pctR, Players.ypaR, Players.int_playR, Players.qb_rushR, Players.ypcR, Players.recR, Players.avgR, Players.pass_blockR, Players.run_blockR, Players.run_dR, Players.pass_dR, Players.rush_dR FROM Players INNER JOIN TeamPlayers ON Players.player_id = TeamPlayers.player_id WHERE TeamPlayers.team_id = $this->awayTeam";
 		$results = $db->query($sql);
 		$this->team[1] = $results->fetchAll(PDO::FETCH_ASSOC);
 		
-
-		foreach ($this->team as $key => $value) {
-			array_push($this->team[$key]['playerStats'] = $this->playerStats);
+		for($t = 0; $t < 2; $t++){
+			foreach ($this->team[$t] as $key => $value) {
+				//echo 'key: ' . $key . ' value: ' . $value . '<br>';
+				array_push($this->team[$t][$key], $this->playerStats);
+			}	
 		}
 
-		// need to create game id's dynamically (when creating schedule, auto increment game id's and pull from schedule table)
-		$this->gameId = 0;
+
+		//var_dump($this->team[0]);
 
 	}	// end getGame
 
 
-	public function simGame(){
-		require("../../../config.php");		
+	public function simGame($gameId){
+		require(ROOT_PATH . 'config.php');	
+
+		// call getGame
+		$this->getGame($gameId);
+		//$this->simPlayerStats();
 
 		// need to add overtime if/else
 
 		// call stat functions
-		$this->getPlayerStats($this->gameId);
-		$this->getTeamStats($this->gameId);
+		$this->getPlayerStats($gameId);
+		$this->getTeamStats($gameId);
 
 		// update TeamStats W/L
+		/*
 		if($this->homeScore > $this->awayScore){	// wrap in if statement to check if isset (1st game of season)
 			$sql = "UPDATE TeamStats SET games_won = games_won + 1 WHERE team_id = $this->homeTeam";
 			$results = $db->exec($sql);
@@ -133,7 +139,7 @@ class Game {
 			$results = $db->exec($sql);
 			$sql = "UPDATE TeamStats SET games_lost = games_lost + 1 WHERE team_id = $this->homeTeam";
 			$results = $db->exec($sql);
-		}
+		}*/
 
 	} 	// end simGame
 
@@ -211,7 +217,7 @@ class Game {
 		// call functions to calculate player stats
 		$this->advantages($tightEnds);
 		$this->passPlayerStats($this->passPlays, $qbs, $this->p);
-		$this->recPlayerStats($receivers, $passYrds);
+		$this->recPlayerStats($receivers);
 		$this->runPlayerStats($this->runPlays, $runningBacks, $this->p);
 		$this->defStats($defPlayers, $this->p, $this->r);
 		$this-> fumble();
@@ -288,23 +294,23 @@ class Game {
 
 
 
-	public function recPlayerStats($receivers, $passYrds){
+	public function recPlayerStats($receivers){
 		
 		// loop through each receiver adding his rec rating to a total # and assign receptions based on % of total team rec each indiv player holds
-		for($t = 0; $t < 2; $t++){	
-			for($x = 0; $x < $this->qbCompNum[$t]; $x++){
-				$a = rand(1, $this->recOvr[$t]);
+		for($t = 0; $t < 2; $t++){		// run once for each team
+			for($x = 0; $x < $this->qbCompNum[$t]; $x++){	// run once for each completion
+				$a = rand(1, $this->recOvr[$t]);	// generate random # between 1 and the total added rec ovr.
 				$oldVal = 0;
 			    $player = 0;
-				foreach ($receivers[$t] as $value) {
-					$newVal = $value[1] + $oldVal;
+				foreach ($receivers[$t] as $value) {	// for each receiver 
+					$newVal = $value[1] + $oldVal; 
+					$player = $value[0];
 					if($newVal >= $a){
-						$this->team[$t][1 + $player]['playerStats']['receptions'] += 1;	
-						$player = 0;
-					break;
+						$this->findPlayerIndex($this->team[$t], $player);
+						$this->team[$t][$this->key]['0']['receptions'] += 1;	
+						break;
 					} else {
 						$oldVal += $value[1];
-						$player++;
 					}
 				}	
 			}
@@ -312,13 +318,16 @@ class Game {
 
 		for($t = 0; $t < 2; $t++){	
 			// need to get each players catches and multiply by ypc
-			$player = 1;
+			//var_dump($receivers[$t]);
 			foreach ($receivers[$t] as $val) {
+				$player = $val[0];
+				$this->findPlayerIndex($this->team[$t], $player);
 				$avgRecYrds[$t] = ($val[2] * ($this->qbYPAr[$t] / 7.3));
-				$playerRec[$t] = $this->team[$t][$player]['playerStats']['receptions'];
+				//echo 'avg rec yards: ' . $avgRecYrds[$t] . '<br>';
+				$playerRec[$t] = $this->team[$t][$this->key]['0']['receptions'];
 				$recYrds[$t] = round($avgRecYrds[$t] * $playerRec[$t]);
-				$this->team[$t][$player]['playerStats']['yards'] = $recYrds[$t];
-				$player++;
+				//echo 'rec yrds: ' . $recYrds[$t] . '<br>';
+				$this->team[$t][$this->key]['0']['yards'] = $recYrds[$t];
 				$this->totRecYrds[$t] += $recYrds[$t];
 
 			}
@@ -330,18 +339,18 @@ class Game {
 			for($i = 0; $i < $this->passTd[$t]; $i++){ 
 				do{
 					$player = array_rand($this->team[$t], 1);
-				}while($this->team[$t][$player]['playerStats']['receptions'] < 1);
-				$this->team[$t][$player]['playerStats']['td'] += 1;
+				}while($this->team[$t][$player]['0']['receptions'] < 1);
+				$this->team[$t][$player]['0']['td'] += 1;
 			}
 		}
 
 
 		// push qb stats to array
 		for($t = 0; $t < 2; $t++){
-			$this->team[$t][0]['playerStats']['yards'] = $this->totRecYrds[$t];		// pass yards pushed to qb stats array
-			$this->team[$t][0]['playerStats']['completions'] = $this->qbCompNum[$t];		// completions pushed to qb stats array
-			$this->team[$t][0]['playerStats']['interceptions'] = $this->intercept[$t];		// pass interceptions pushed to qb stats array
-			$this->team[$t][0]['playerStats']['td'] = $this->passTd[$t];		// pass tds pushed to qb stats array
+			$this->team[$t][0]['0']['yards'] = $this->totRecYrds[$t];		// pass yards pushed to qb stats array
+			$this->team[$t][0]['0']['completions'] = $this->qbCompNum[$t];		// completions pushed to qb stats array
+			$this->team[$t][0]['0']['interceptions'] = $this->intercept[$t];		// pass interceptions pushed to qb stats array
+			$this->team[$t][0]['0']['td'] = $this->passTd[$t];		// pass tds pushed to qb stats array
 		}
 
 		// need to add td's
@@ -353,7 +362,7 @@ class Game {
 	public function runPlayerStats($runPlays, $runningBacks, $r){
 
 		for($t = 0; $t < 2; $t++){
-			$rbYPC[] = $runningBacks[$t][0][2];
+			$rbYPC[] = $runningBacks[$t][0][2];		// rb YPC from starter
 			$chance = rand(-10, 10) / 10;
 			$rbYPCr[] = round(($rbYPC[$t] * $r[$t]) + $chance);
 
@@ -389,13 +398,13 @@ class Game {
 			if($chance > (40 + $c)){
 				do{
 					$player = $this->team[$t][array_rand($this->team[$t])];
-				}while($player['playerStats']['yards'] == 0);
-				$player['playerStats']['fumbles'] = 1;
+				}while($player['0']['yards'] == 0);
+				$player['0']['fumbles'] = 1;
 
 				do{
 					$dPlayer = $this->team[$t][array_rand($this->team[$t])];
-				}while($dPlayer['playerStats']['tackles'] == 0);
-				$dPlayer['playerStats']['fumbles'] = 1;
+				}while($dPlayer['0']['tackles'] == 0);
+				$dPlayer['0']['fumbles'] = 1;
 				$this->fumbles[$t] += 1;
 				// need to add fumble for rand defense player and update team stats		
 			}
@@ -433,7 +442,7 @@ class Game {
 			// db and lb 1.75x dl
 			// use overall and pick rand player for each play giving db and lb 1.75x more than dl
 		for($t = 0; $t < 2; $t++){
-			$this->totTackles[$t] = ($this->qbCompNum[$t] + $this->runPlays[$t]) - $this->Td[$t] - $this->intercept[$t] - $this->homeFumbles;	// each play must be a tackle if not TD or TO (need to account for out of bounds plays in future)
+			$this->totTackles[$t] = ($this->qbCompNum[$t] + $this->runPlays[$t]) - $this->Td[$t] - $this->intercept[$t] - $this->fumbles[$t];	// each play must be a tackle if not TD or TO (need to account for out of bounds plays in future)
 			foreach ($defPlayers[$t] as $val) {
 				if($val[5] == "LB" OR $val[5] == 'DB'){
 					$this->tackleOvr[$t] += $val[1] * 1.75;
@@ -448,16 +457,17 @@ class Game {
 			for($x = 0; $x < $this->totTackles[$t]; $x++){
 				$a = rand(1, $this->tackleOvr[$t]);
 				$oldVal = 0;
-			    $player = 0;
 				foreach ($defPlayers[$t] as $value) {
+					$player = $value[0];
 					if($value[5] == "LB" OR $value[5] == 'DB'){
 						$newVal = ($value[1] * 1.75) + $oldVal;
 					} else {
 						$newVal = $value[1] + $oldVal;
 					}
+
 					if($newVal >= $a){
-						$this->team[$t][10 + $player]['playerStats']['tackles'] += 1;	
-						$player = 0;
+						$this->findPlayerIndex($this->team[$t], $player);
+						$this->team[$t][$this->key]['0']['tackles'] += 1;	
 					break;
 					} else {
 						if($value[5] == "LB" OR $value[5] == 'DB'){
@@ -465,7 +475,6 @@ class Game {
 							$player++;
 						}else {
 							$oldVal += $value[1];
-							$player++;
 						}
 					}
 				}
@@ -489,16 +498,15 @@ class Game {
 			for($s = 0; $s < $this->sack[$t]; $s++){
 				$a = rand(1, $this->dRushOvr[$t]);
 				$oldVal = 0;
-			    $player = 0;
 				foreach ($defPlayers[$t] as $v) {
+					$player = $v[0];
 					$newVal = $v[4] + $oldVal;
 					if($newVal >= $a){
-						$this->team[$t][10 + $player]['playerStats']['sacks'] += 1;	
-						$player = 0;
+						$this->findPlayerIndex($this->team[$t], $player);
+						$this->team[$t][$this->key]['0']['sacks'] += 1;	
 					break;
 					} else {
 						$oldVal += $v[4];
-						$player++;
 					}
 				}
 			}
@@ -509,16 +517,15 @@ class Game {
 			for($i = 0; $i < $this->intercept[$t]; $i++){
 				$x = rand(1, $this->dPassOvr[$t]);	
 				$oldVal = 0;
-			    $player = 0;
 				foreach ($defPlayers[$t] as $valu) {
+					$player = $valu[0];
 					$newVal = $valu[3] + $oldVal;
 					if($newVal >= $x){
-						$this->team[$t][10 + $player]['playerStats']['interceptions'] += 1;	
-						$player = 0;
+						$this->findPlayerIndex($this->team[$t], $player);
+						$this->team[$t][$this->key]['0']['interceptions'] += 1;	
 					break;
 					} else {
 						$oldVal += $valu[3];
-						$player++;
 					}
 				}
 			}
@@ -536,12 +543,26 @@ class Game {
 	}	// end defStats
 
 
+	// use to find the index key of a player using player id
+	public function findPlayerIndex($arr, $player){
+		//var_dump($arr);
+		//echo $player;
+		foreach ($arr as $k => $id) {
+			if($id['player_id'] == $player){
+				$this->key = $k;
+				return $this->key;
+				
+			}
+		}
+	}
+
+
 	public function getPlayerStats($gameId){
-		require("../../../config.php");	
+		require(ROOT_PATH . "config.php");
 		$this->simPlayerStats();
 
 		// passing offense (push to array)
-		echo '<br>' . "Number of home pass plays: " . $this->passPlays[0] . "<br>";
+		/*echo '<br>' . "Number of home pass plays: " . $this->passPlays[0] . "<br>";
 		echo "Number of away pass plays: " . $this->passPlays[1] . "<br>";
 		echo "home interceptions: " . $this->intercept[0] . '<br>';
 		echo "away interceptions: " . $this->intercept[1] . '<br>';
@@ -564,125 +585,176 @@ class Game {
 
 		// receiving offense
 		echo 'home total rec yrds: ' . $this->totRecYrds[0] . '<br>';
-		echo $this->team[0][1]['first_name'] . " has " . $this->team[0][1]['playerStats']['receptions'] . " receptions and " . $this->team[0][1]['playerStats']['yards'] . " yards" . "<br>";
-		echo $this->team[0][2]['first_name'] . " has " . $this->team[0][2]['playerStats']['receptions'] . " receptions and " . $this->team[0][2]['playerStats']['yards'] . " yards" . "<br>";
-		echo $this->team[0][3]['first_name'] . " has " . $this->team[0][3]['playerStats']['receptions'] . " receptions and " . $this->team[0][3]['playerStats']['yards'] . " yards" . "<br>";
-		echo $this->team[0][4]['first_name'] . " has " . $this->team[0][4]['playerStats']['receptions'] . " receptions and " . $this->team[0][4]['playerStats']['yards'] . " yards" . "<br>";
+		echo $this->team[0][1]['first_name'] . " has " . $this->team[0][1]['0']['receptions'] . " receptions and " . $this->team[0][1]['0']['yards'] . " yards" . "<br>";
+		echo $this->team[0][2]['first_name'] . " has " . $this->team[0][2]['0']['receptions'] . " receptions and " . $this->team[0][2]['0']['yards'] . " yards" . "<br>";
+		echo $this->team[0][3]['first_name'] . " has " . $this->team[0][3]['0']['receptions'] . " receptions and " . $this->team[0][3]['0']['yards'] . " yards" . "<br>";
+		echo $this->team[0][4]['first_name'] . " has " . $this->team[0][4]['0']['receptions'] . " receptions and " . $this->team[0][4]['0']['yards'] . " yards" . "<br>";
 
 		echo 'away total rec yrds: ' . $this->totRecYrds[1] . '<br>';
-		echo $this->team[1][1]['first_name'] . " has " . $this->team[1][1]['playerStats']['receptions'] . " receptions and " . $this->team[1][1]['playerStats']['yards'] . " yards" . "<br>";
-		echo $this->team[1][2]['first_name'] . " has " . $this->team[1][2]['playerStats']['receptions'] . " receptions and " . $this->team[1][2]['playerStats']['yards'] . " yards" . "<br>";
-		echo $this->team[1][3]['first_name'] . " has " . $this->team[1][3]['playerStats']['receptions'] . " receptions and " . $this->team[1][3]['playerStats']['yards'] . " yards" . "<br>";
-		echo $this->team[1][4]['first_name'] . " has " . $this->team[1][4]['playerStats']['receptions'] . " receptions and " . $this->team[1][4]['playerStats']['yards'] . " yards" . "<br>";
+		echo $this->team[1][1]['first_name'] . " has " . $this->team[1][1]['0']['receptions'] . " receptions and " . $this->team[1][1]['0']['yards'] . " yards" . "<br>";
+		echo $this->team[1][2]['first_name'] . " has " . $this->team[1][2]['0']['receptions'] . " receptions and " . $this->team[1][2]['0']['yards'] . " yards" . "<br>";
+		echo $this->team[1][3]['first_name'] . " has " . $this->team[1][3]['0']['receptions'] . " receptions and " . $this->team[1][3]['0']['yards'] . " yards" . "<br>";
+		echo $this->team[1][4]['first_name'] . " has " . $this->team[1][4]['0']['receptions'] . " receptions and " . $this->team[1][4]['0']['yards'] . " yards" . "<br>";
 
 
 		// tackles
 		echo "Home Total Team Tackles: " . $this->totTackles[0] . "<br>";
-		echo $this->team[0][10]['first_name'] . " has " . $this->team[0][10]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][11]['first_name'] . " has " . $this->team[0][11]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][12]['first_name'] . " has " . $this->team[0][12]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][13]['first_name'] . " has " . $this->team[0][13]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][14]['first_name'] . " has " . $this->team[0][14]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][15]['first_name'] . " has " . $this->team[0][15]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][16]['first_name'] . " has " . $this->team[0][16]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][17]['first_name'] . " has " . $this->team[0][17]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][18]['first_name'] . " has " . $this->team[0][18]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][19]['first_name'] . " has " . $this->team[0][19]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[0][20]['first_name'] . " has " . $this->team[0][20]['playerStats']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][10]['first_name'] . " has " . $this->team[0][10]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][11]['first_name'] . " has " . $this->team[0][11]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][12]['first_name'] . " has " . $this->team[0][12]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][13]['first_name'] . " has " . $this->team[0][13]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][14]['first_name'] . " has " . $this->team[0][14]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][15]['first_name'] . " has " . $this->team[0][15]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][16]['first_name'] . " has " . $this->team[0][16]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][17]['first_name'] . " has " . $this->team[0][17]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][18]['first_name'] . " has " . $this->team[0][18]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][19]['first_name'] . " has " . $this->team[0][19]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[0][20]['first_name'] . " has " . $this->team[0][20]['0']['tackles'] . " tackles" . "<br>";
 
 		echo "Away Total Team Tackles: " . $this->totTackles[1] . "<br>";
-		echo $this->team[1][10]['first_name'] . " has " . $this->team[1][10]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][11]['first_name'] . " has " . $this->team[1][11]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][12]['first_name'] . " has " . $this->team[1][12]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][13]['first_name'] . " has " . $this->team[1][13]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][14]['first_name'] . " has " . $this->team[1][14]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][15]['first_name'] . " has " . $this->team[1][15]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][16]['first_name'] . " has " . $this->team[1][16]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][17]['first_name'] . " has " . $this->team[1][17]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][18]['first_name'] . " has " . $this->team[1][18]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][19]['first_name'] . " has " . $this->team[1][19]['playerStats']['tackles'] . " tackles" . "<br>";
-		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['playerStats']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][10]['first_name'] . " has " . $this->team[1][10]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][11]['first_name'] . " has " . $this->team[1][11]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][12]['first_name'] . " has " . $this->team[1][12]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][13]['first_name'] . " has " . $this->team[1][13]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][14]['first_name'] . " has " . $this->team[1][14]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][15]['first_name'] . " has " . $this->team[1][15]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][16]['first_name'] . " has " . $this->team[1][16]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][17]['first_name'] . " has " . $this->team[1][17]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][18]['first_name'] . " has " . $this->team[1][18]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][19]['first_name'] . " has " . $this->team[1][19]['0']['tackles'] . " tackles" . "<br>";
+		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['0']['tackles'] . " tackles" . "<br>";
 
 
 		// interceptions
 		echo "home interceptions: " . $this->intercept[0] . '<br>';
-		echo $this->team[0][13]['first_name'] . " has " . $this->team[0][13]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[0][14]['first_name'] . " has " . $this->team[0][14]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[0][15]['first_name'] . " has " . $this->team[0][15]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[0][16]['first_name'] . " has " . $this->team[0][16]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[0][17]['first_name'] . " has " . $this->team[0][17]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[0][18]['first_name'] . " has " . $this->team[0][18]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[0][19]['first_name'] . " has " . $this->team[0][19]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[0][20]['first_name'] . " has " . $this->team[0][20]['playerStats']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[0][13]['first_name'] . " has " . $this->team[0][13]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[0][14]['first_name'] . " has " . $this->team[0][14]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[0][15]['first_name'] . " has " . $this->team[0][15]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[0][16]['first_name'] . " has " . $this->team[0][16]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[0][17]['first_name'] . " has " . $this->team[0][17]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[0][18]['first_name'] . " has " . $this->team[0][18]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[0][19]['first_name'] . " has " . $this->team[0][19]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[0][20]['first_name'] . " has " . $this->team[0][20]['0']['interceptions'] . " interceptions" . "<br>";
 
 		echo "away interceptions: " . $this->intercept[1] . '<br>';
-		echo $this->team[1][13]['first_name'] . " has " . $this->team[1][13]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[1][14]['first_name'] . " has " . $this->team[1][14]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[1][15]['first_name'] . " has " . $this->team[1][15]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[1][16]['first_name'] . " has " . $this->team[1][16]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[1][17]['first_name'] . " has " . $this->team[1][17]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[1][18]['first_name'] . " has " . $this->team[1][18]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[1][19]['first_name'] . " has " . $this->team[1][19]['playerStats']['interceptions'] . " interceptions" . "<br>";
-		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['playerStats']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[1][13]['first_name'] . " has " . $this->team[1][13]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[1][14]['first_name'] . " has " . $this->team[1][14]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[1][15]['first_name'] . " has " . $this->team[1][15]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[1][16]['first_name'] . " has " . $this->team[1][16]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[1][17]['first_name'] . " has " . $this->team[1][17]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[1][18]['first_name'] . " has " . $this->team[1][18]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[1][19]['first_name'] . " has " . $this->team[1][19]['0']['interceptions'] . " interceptions" . "<br>";
+		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['0']['interceptions'] . " interceptions" . "<br>";
 		
 
 		// sacks	
 		echo "home sacks: " . $this->sack[0] . '<br>';		
-		echo $this->team[0][10]['first_name'] . " has " . $this->team[0][10]['playerStats']['sacks'] . "<br>";
-		echo $this->team[0][11]['first_name'] . " has " . $this->team[0][11]['playerStats']['sacks'] . "<br>";
-		echo $this->team[0][12]['first_name'] . " has " . $this->team[0][12]['playerStats']['sacks'] . "<br>";
-		echo $this->team[0][13]['first_name'] . " has " . $this->team[0][13]['playerStats']['sacks'] . "<br>";
-		echo $this->team[0][14]['first_name'] . " has " . $this->team[0][14]['playerStats']['sacks'] . "<br>";
-		echo $this->team[0][15]['first_name'] . " has " . $this->team[0][15]['playerStats']['sacks'] . "<br>";
-		echo $this->team[0][16]['first_name'] . " has " . $this->team[0][16]['playerStats']['sacks'] . "<br>";
-		echo $this->team[0][17]['first_name'] . " has " . $this->team[0][17]['playerStats']['sacks'] . "<br>";
+		echo $this->team[0][10]['first_name'] . " has " . $this->team[0][10]['0']['sacks'] . "<br>";
+		echo $this->team[0][11]['first_name'] . " has " . $this->team[0][11]['0']['sacks'] . "<br>";
+		echo $this->team[0][12]['first_name'] . " has " . $this->team[0][12]['0']['sacks'] . "<br>";
+		echo $this->team[0][13]['first_name'] . " has " . $this->team[0][13]['0']['sacks'] . "<br>";
+		echo $this->team[0][14]['first_name'] . " has " . $this->team[0][14]['0']['sacks'] . "<br>";
+		echo $this->team[0][15]['first_name'] . " has " . $this->team[0][15]['0']['sacks'] . "<br>";
+		echo $this->team[0][16]['first_name'] . " has " . $this->team[0][16]['0']['sacks'] . "<br>";
+		echo $this->team[0][17]['first_name'] . " has " . $this->team[0][17]['0']['sacks'] . "<br>";
 
 		echo "away sacks: " . $this->sack[1] . '<br>';		
-		echo $this->team[1][10]['first_name'] . " has " . $this->team[1][10]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][11]['first_name'] . " has " . $this->team[1][11]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][12]['first_name'] . " has " . $this->team[1][12]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][13]['first_name'] . " has " . $this->team[1][13]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][14]['first_name'] . " has " . $this->team[1][14]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][15]['first_name'] . " has " . $this->team[1][15]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][16]['first_name'] . " has " . $this->team[1][16]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][17]['first_name'] . " has " . $this->team[1][17]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][18]['first_name'] . " has " . $this->team[1][18]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][19]['first_name'] . " has " . $this->team[1][19]['playerStats']['sacks'] . "<br>";
-		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['playerStats']['sacks'] . "<br>";
+		echo $this->team[1][10]['first_name'] . " has " . $this->team[1][10]['0']['sacks'] . "<br>";
+		echo $this->team[1][11]['first_name'] . " has " . $this->team[1][11]['0']['sacks'] . "<br>";
+		echo $this->team[1][12]['first_name'] . " has " . $this->team[1][12]['0']['sacks'] . "<br>";
+		echo $this->team[1][13]['first_name'] . " has " . $this->team[1][13]['0']['sacks'] . "<br>";
+		echo $this->team[1][14]['first_name'] . " has " . $this->team[1][14]['0']['sacks'] . "<br>";
+		echo $this->team[1][15]['first_name'] . " has " . $this->team[1][15]['0']['sacks'] . "<br>";
+		echo $this->team[1][16]['first_name'] . " has " . $this->team[1][16]['0']['sacks'] . "<br>";
+		echo $this->team[1][17]['first_name'] . " has " . $this->team[1][17]['0']['sacks'] . "<br>";
+		echo $this->team[1][18]['first_name'] . " has " . $this->team[1][18]['0']['sacks'] . "<br>";
+		echo $this->team[1][19]['first_name'] . " has " . $this->team[1][19]['0']['sacks'] . "<br>";
+		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['0']['sacks'] . "<br>";*/
 
-
-		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['playerStats']['tackles'] . " tackles" . "<br>";
 
 		// insert into PlayerStatsGame db (loop through each player, and insert their stats to db)
 		for ($t=0; $t < 2; $t++) { 
 			foreach ($this->team[$t] as $key1 => $value) {
-				foreach ($value as $playerAttrs => $statVals) {
-					echo '<pre>';
-					// set the played id to be pushed to db
-					if($playerAttrs == "player_id"){
-						$playerId = $statVals;
-					}
-					
+				// get team player id
+				$this->playerId = $value['player_id'];
+				$sql = "SELECT team_player_id FROM TeamPlayers WHERE player_id = $this->playerId";
+				$result = $db->query($sql);
+				$result = $result->fetch(PDO::FETCH_ASSOC);
+				$tmPlrId = $result['team_player_id'];
+				//echo 'team player id: ' . $tmPlrId . '<br>';
+				//echo '<pre>';
+				//var_dump($result);
+				foreach ($value as $playerAttrs => $statVals) {	
 					$stKeys = "".implode(", ", array_keys($statVals))."";
 					$stVals = "'".implode("', '", array_values($statVals))."'";	
+
+					$comp = $value[0]['completions'];
+					$yrd = $value[0]['yards'];
+					$td1 = $value[0]['td'];
+					$int1 = $value[0]['interceptions'];
+					$fum = $value[0]['fumbles'];
+					$sck = $value[0]['sacks'];
+					$rec1 = $value[0]['receptions'];
+					$tck = $value[0]['tackles'];
+
 					// if stat exists, push to db for each player
 					if($stKeys !== ''){
-						$sql="INSERT INTO PlayerStatsGame (game_id, player_id, $stKeys) VALUES ('$gameId', '$playerId', $stVals)";
-						print $sql . "<br>";
+						$this->playerId;
+						$sql="INSERT INTO PlayerStatsGame (game_id, team_player_id, $stKeys) VALUES ('$gameId', '$tmPlrId', $stVals)";
+						//print $sql . "<br>";
 						$db->exec($sql);
-						echo "new record success" . '<br>';
+						//echo "new record success" . '<br>';
+						//echo 'statVals: ' . $statVals . ' player attrs: ' . $playerAttrs . ' value: ' . $value . '<br>';
+
+						// update PlayerStats
+
+						$stmt = $db->prepare("SELECT * FROM PlayerStats WHERE team_player_id = '$tmPlrId'");
+						$stmt->execute();
+						$record = $stmt->fetch();
+						//echo 'record: ' . $record . '<br>';
+
+						if($record == false){
+							$sql = "INSERT INTO PlayerStats (team_player_id, $stKeys) VALUES ('$tmPlrId', $stVals)";
+							//print $sql . "<br>";
+							$db->exec($sql);
+						}else { 
+							$sql = "UPDATE PlayerStats SET ".
+							"completions = completions + :comp,".
+							"td = td + :tds,".
+							"interceptions = interceptions + :int,".
+							"fumbles = fumbles + :fum,".
+							"yards = yards + :yrds,".
+							"tackles = tackles + :tckls,".
+							"sacks = sacks + :sacks,".
+							"receptions = receptions + :rec ".
+							"WHERE team_player_id = :Id";
+
+							$result = $db->prepare($sql);
+							$result->bindParam(":comp", $comp, PDO::PARAM_INT);
+							$result->bindParam(":tds", $td1, PDO::PARAM_INT);
+							$result->bindParam(":int", $int1, PDO::PARAM_INT);
+							$result->bindParam(":fum", $fum, PDO::PARAM_INT);
+							$result->bindParam(":yrds", $yrd, PDO::PARAM_INT);
+							$result->bindParam(":tckls", $tck, PDO::PARAM_INT);
+							$result->bindParam(":sacks", $sck, PDO::PARAM_INT);
+							$result->bindParam(":rec", $rec1, PDO::PARAM_INT);
+							$result->bindParam(":Id", $tmPlrId, PDO::PARAM_INT);
+							//print $sql . "<br>";
+							$result->execute();
+
+						}
+
 					}
 				}
 			}
 		}
-
 
 	}	// end getPlayerStats
 
 
 
 	public function getTeamStats($gameId, $homeTeam, $awayTeam){
-		require("../../../config.php");	
+		require(ROOT_PATH . "config.php");
 
 		// need to add fg's 
 
@@ -715,7 +787,7 @@ class Game {
 		$awayTotPlays = $this->playsNum[1];
 
 
-		echo "Home Team final score: " . $this->score[0] . "<br>";
+		/*echo "Home Team final score: " . $this->score[0] . "<br>";
 		echo "Away Team final score: " . $this->score[1] . "<br>";		
 		echo "Home Total Yards: " . $homeTotYrds . "<br>";
 		echo "Away Total Yards: " . $awayTotYrds . "<br>";
@@ -730,12 +802,77 @@ class Game {
 		echo "Home Sacks: " . $homeSack . "<br>";
 		echo "Away Sacks: " . $awaySack . "<br>";
 		echo "Home Total Plays: " . $homeTotPlays . "<br>";
-		echo "Away Total Plays: " . $awayTotPlays . "<br>";
-
+		echo "Away Total Plays: " . $awayTotPlays . "<br>";*/
 
 		// push to db (add home and away team id)
-		$sql = "INSERT INTO GameStats (game_id, home_score, away_score, home_yards, away_yards, home_turnovers, away_turnovers, home_total_plays, away_total_plays, home_rushing_yards, away_rushing_yards, home_passing_yards, away_passing_yards, home_tds, away_tds, home_sacks, away_sacks) VALUES ('$gameId', '$homeScore', '$awayScore', '$homeTotYrds', '$awayTotYrds', '$homeTurnovers', '$awayTurnovers', '$homeTotPlays', '$awayTotPlays', '$homeRushYrds', '$awayRushYrds', '$homePassYrds', '$awayPassYrds', '$homeTd', '$awayTd', '$homeSack', '$awaySack')";
+		$sql = "INSERT INTO GameStats (game_id, home_team, away_team, home_score, away_score, home_yards, away_yards, home_turnovers, away_turnovers, home_total_plays, away_total_plays, home_rushing_yards, away_rushing_yards, home_passing_yards, away_passing_yards, home_tds, away_tds, home_sacks, away_sacks) VALUES ($gameId, '$this->homeTeam', '$this->awayTeam', '$homeScore', '$awayScore', '$homeTotYrds', '$awayTotYrds', '$homeTurnovers', '$awayTurnovers', '$homeTotPlays', '$awayTotPlays', '$homeRushYrds', '$awayRushYrds', '$homePassYrds', '$awayPassYrds', '$homeTd', '$awayTd', '$homeSack', '$awaySack')";
 		$db->exec($sql);
+
+		// push to TeamStats
+		if($homeScore > $awayScore){
+
+			// push to team stats for home
+			$stmt = $db->prepare("SELECT * FROM TeamStats WHERE team_id = '$this->homeTeam'");
+			$stmt->execute();
+			$record = $stmt->fetch();
+			
+			if($record == false){
+				$sql = "INSERT INTO TeamStats (team_id, games_won, games_lost, season_id) VALUES ('$this->homeTeam', 1, 0, '$this->seasonId')";
+				$db->exec($sql);
+			} else {
+				$sql = "UPDATE TeamStats SET games_won = games_won + 1 WHERE team_id = $this->homeTeam";
+
+			}
+
+			// push to team stats for away
+			$stmt = $db->prepare("SELECT * FROM TeamStats WHERE team_id = '$this->awayTeam'");
+			$stmt->execute();
+			$record = $stmt->fetch();
+			
+			if($record == false){
+				$sql = "INSERT INTO TeamStats (team_id, games_won, games_lost, season_id) VALUES ('$this->awayTeam', 0, 1, $this->seasonId)";
+				//print $sql . '<br>';
+				$db->exec($sql);
+			} else {
+				$sql = "UPDATE TeamStats SET games_lost = games_lost + 1 WHERE team_id = $this->awayTeam";
+				//print $sql . '<br>';
+				$db->exec($sql);
+			}
+
+		} else {
+
+			// push to team stats for home
+			$stmt = $db->prepare("SELECT * FROM TeamStats WHERE team_id = '$this->homeTeam'");
+			$stmt->execute();
+			$record = $stmt->fetch();
+			
+			if($record == false){
+				$sql = "INSERT INTO TeamStats (team_id, games_won, games_lost, season_id) VALUES ('$this->homeTeam', 0, 1, $this->seasonId)";
+				//print $sql . '<br>';
+				$db->exec($sql);
+			} else {
+				$sql = "UPDATE TeamStats SET games_lost = games_lost + 1 WHERE team_id = $this->homeTeam";
+				//print $sql . '<br>';
+				$db->exec($sql);
+			}
+
+			// push to team stats for away
+			$stmt = $db->prepare("SELECT * FROM TeamStats WHERE team_id = '$this->awayTeam'");
+			$stmt->execute();
+			$record = $stmt->fetch();
+			
+			if($record == false){
+				$sql = "INSERT INTO TeamStats (team_id, games_won, games_lost, season_id) VALUES ('$this->awayTeam', 1, 0, $this->seasonId)";
+				//print $sql . '<br>';
+				$db->exec($sql);
+			} else {
+				$sql = "UPDATE TeamStats SET games_won = games_won + 1 WHERE team_id = $this->awayTeam";
+				//print $sql . '<br>';
+				$db->exec($sql);
+			}
+
+		}
+
 		
 
 	} 	// end getTeamStats
@@ -754,15 +891,6 @@ class Game {
 }	// end class
 
 ?>
-
-<p><?php 
-
-	$obj = new Game();
-	$obj->getGame(0, 1);
-	$obj->simGame();
-	//$obj->sims();
-
- ?></p>
 
 
 

@@ -23,3 +23,188 @@
     white-space: nowrap; 
 }
 .header .nav li.on a {text-decoration: underline;}
+
+
+
+/*  LOGIN   */
+
+
+.tableheader {
+background-color: #95BEE6;
+color:white;
+font-weight:bold;
+}
+.tablerow {
+background-color: #A7D6F1;
+color:white;
+}
+.message {
+color: #FF0000;
+font-weight: bold;
+text-align: center;
+width: 100%;
+}
+
+
+
+/*   SIDEBAR    */
+
+
+
+.container {
+    position: relative;
+    padding: 0 0 0 55px;
+    width: 90%;
+    margin: 0 auto;
+}
+
+.sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 15%;
+    border: 1px solid #d0d0d0;
+    height: 500px;
+}
+
+.content {
+    border: 1px solid #d0d0d0;
+    width: 80%;
+    margin-left: 15%;
+}
+
+.side_items ul {
+    list-style-type: none;
+    text-decoration: none;
+    padding: 0;
+}
+
+.side_items li {
+    padding: 0 10%;
+    color: #4e4e4e;
+}
+
+.side_items li a {
+    color: #333;
+    list-style-type: none;
+    text-decoration: none;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 13px;
+}
+
+.side_items p {
+    margin: 0;
+    padding: 0 10%;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.side_items ul li:hover {
+    background-color: #b2b2b2;
+}
+
+
+
+/*      Heading        */
+
+.heading {
+    padding-bottom: 50px;
+    margin: 0 auto;
+    width: 90%;
+}
+
+
+
+
+/*    All Players   */
+
+
+
+.players_table {
+    width: 85%;
+    margin: 0 auto;
+}
+
+.players_body th{
+   font-size: 12px;
+   font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+.players_body td {
+   font-size: 11px;
+   font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;   
+}
+
+.players_body tbody, .players_body thead {
+    display: block;
+}
+
+.table_body {
+    overflow: auto;
+    height: 400px;
+}
+
+
+
+
+
+
+
+
+/*      boxScore      */
+
+
+
+.boxscore{
+    width: 40%;
+    margin: 35px auto;
+    font-size: 12px;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;   
+}
+
+.boxScore thead th {
+    border-bottom: 1px solid #000 !important;
+}
+
+.boxplayers{
+    font-size: 12px;
+}
+
+.gamePlayerStats {
+    width: 90%;
+    margin: 50px auto;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;   
+}
+
+
+
+
+/*      teamStats       */
+
+
+
+
+.teamStats {
+    width: 90%;
+    margin: 0 auto;
+}
+
+.teamStats table {
+    margin: 0 auto;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;  
+}
+
+.teamStats table td {
+    font-size: 11px;
+}
+
+.teamStats thead th {
+    font-size: 14px;
+    border-bottom: 1px solid #000 !important;
+}
+
+
+
+
