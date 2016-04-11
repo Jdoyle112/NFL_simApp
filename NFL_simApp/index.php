@@ -10,15 +10,24 @@
 	
 	$pageTitle = "Home";
 	$section = "home";
-	//include 'resources/includes/header.php';
 
 ?>
 <?php include(ROOT_PATH . 'resources/includes/header.php'); ?>
-	<a href="<?php if(isset($username)){ echo "#"; } else{ echo BASE_URL . "resources/views/login.php"; } ?>"><?php if(isset($username)){echo $username;} else{ echo "Login"; } ?></a><a href="<?php if(isset($username)){echo BASE_URL . "resources/views/logout.php?logout";}else {echo BASE_URL . "resources/views/register.php";}  ?>"><?php if(isset($username)){ echo "Logout";}else{ echo 'Register';} ?></a>
-	<h1>HEllo!</h1>
-	<a href="<?php echo BASE_URL . "resources/views/createLeague.php"; ?>">Leagues</a>
-
-
+		<div class="main" style="background: url(public/imgs/tournoi.jpg) no-repeat center center; background-size: cover">
+			<div class="container">
+				<div class="main_content">
+					<h1>GO BEYOND FANTASY FOOTBALL</h1>
+					<p><strong>Sim Football</strong> is a fantasy football simulation game offering users a unique opportunity to act as a real NFL General Manager. Choose a team, manage your roster, and simulate your games in the realistic sim engine.</p>
+					<div class="row">
+						<div class="col-xs-6 col-md-6">
+							<a class="btn btn-primary" style="float: right" href="resources/views/createLeague.php">Create a League</a>
+						</div>
+						<div class="col-xs-6 col-md-6">
+							<a class="btn btn-primary" href="resources/views/register.php">Join Now!</a>
+						</div>						
+					</div>
+				</div>	
+			</div>
+		</div>
 	</body>
-
 </html>

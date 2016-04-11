@@ -20,7 +20,7 @@
 
 	// links
 	$resources = "resources/views/";
-	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId;
+	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId . '&team=' . $userTeam;
 
 
 ?>
@@ -56,12 +56,8 @@
 			</div>
 			<div class="players_form">
 				<form method="post" action="<?php echo "http://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']; ?>/">
-	                <table>
-	                    <tr>
-	                        <th>
+
 	                            <label for="team">Select a Position</label>
-	                        </th>
-	                        <td>
 							  	<select id="position" name="position">
 	                          	  	<?php
 	                          	  		$sql = "SELECT * FROM Positions";
@@ -72,15 +68,12 @@
 					                    	<option value="<?php echo $values['position_id']; ?>"><?php echo $values['name']; ?></option>	
 					                	<?php	}  ?>                  	
 	                            </select>
-	                        </td>
-	                    </tr> 
-	                </table>
 	                <input type="submit" value="Send">
 				</form>
 			</div>
 			<div>
 				<table class="table table-responsive table-bordered">
-					<th>
+					<thead>
 						<tr>
 							<th>Name</th>
 							<th>Position</th>
@@ -131,7 +124,7 @@
 								} 
 							?>
 						</tr>
-					</th>
+					</thead>
 					<tbody class="table_body">				
 						<?php		
 							$sql = "SELECT * FROM Players";

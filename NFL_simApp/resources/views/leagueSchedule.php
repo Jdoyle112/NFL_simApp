@@ -1,7 +1,7 @@
 <?php
-
-	require("../../config.php");
 	session_start();
+	require("../../config.php");
+	
 	$username = $_SESSION['user'];
 	$userId = $_SESSION['userId']; 
 
@@ -12,7 +12,7 @@
 
 	// links
 	$resources = "resources/views/";
-	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId;
+	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId . '&team=' . $userTeam;
 
 ?>
 <?php include(ROOT_PATH . 'resources/includes/header.php'); ?>
@@ -41,12 +41,12 @@
 			</div>
 		</div>
 		<div class="content">
-			<div class="container">
+			
 				<div class="row">				
-					<div class="heading col-md-6">
+					<div class="heading">
 						<h1><?php echo $league; ?> Schedule</h1>
 					</div>
-					<div class="col-md-6">
+					<div class="players_form">
 						<form method="post" action="<?php echo "http://" . $_SERVER['HTTP_HOST'] . '/NFL_simApp/resources/views/leagueSchedule.php?league=' . $league . '&seasId=' . $seasonId; ?>">
 							<select id="team" name="team">
 				            <?php
@@ -90,7 +90,7 @@
 
 					</ul>			
 				</div>				
-			</div>
+			
 		</div>
 	</div>
 </body>

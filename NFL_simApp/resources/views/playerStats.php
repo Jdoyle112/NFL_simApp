@@ -12,7 +12,7 @@
 
 	// links
 	$resources = "resources/views/";
-	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId;
+	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId . '&team=' . $userTeam;
 
 ?>
 <?php include(ROOT_PATH . 'resources/includes/header.php'); ?>
@@ -70,6 +70,7 @@
 							<th>Td's</th>
 							<th>Int</th>
 							<th>Yards</th>
+							<th>Carries</th>
 							<th>Rec</th>
 							<th>Fum</th>
 							<th>Tackle</th>
@@ -87,7 +88,7 @@
 							$teamId = $results['team_id'];
 						//} 
 
-						$sql = "SELECT TeamPlayers.player_id, PlayerStats.completions, PlayerStats.td, PlayerStats.interceptions, PlayerStats.yards, PlayerStats.receptions, PlayerStats.fumbles, PlayerStats.tackles, PlayerStats.sacks FROM TeamPlayers INNER JOIN PlayerStats ON TeamPlayers.team_player_id = PlayerStats.team_player_id WHERE TeamPlayers.team_id = $teamId";
+						$sql = "SELECT TeamPlayers.player_id, PlayerStats.completions, PlayerStats.td, PlayerStats.interceptions, PlayerStats.yards, PlayerStats.carries, PlayerStats.receptions, PlayerStats.fumbles, PlayerStats.tackles, PlayerStats.sacks FROM TeamPlayers INNER JOIN PlayerStats ON TeamPlayers.team_player_id = PlayerStats.team_player_id WHERE TeamPlayers.team_id = $teamId";
 						$results = $db->query($sql);
 						$results = $results->fetchAll(PDO::FETCH_ASSOC);
 						//var_dump($results);
@@ -99,6 +100,7 @@
 								 	$td = $value['td'];
 								 	$inter = $value['interceptions'];
 									$yrd = $value['yards'];
+									$car = $value['carries'];
 								 	$rec = $value['receptions'];
 								 	$fum = $value['fumbles'];
 								 	$tck = $value['tackles'];
@@ -113,6 +115,7 @@
 								 	echo '<td>' . $td . '</td>';
 								 	echo '<td>' . $inter . '</td>';
 								 	echo '<td>' . $yrd . '</td>';
+								 	echo '<td>' . $car . '</td>';
 								 	echo '<td>' . $rec . '</td>';
 								 	echo '<td>' . $fum . '</td>';	
 								 	echo '<td>' . $tck . '</td>';

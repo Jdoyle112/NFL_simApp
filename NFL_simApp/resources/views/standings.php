@@ -11,7 +11,7 @@
 
 	// links
 	$resources = "resources/views/";
-	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId;
+	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId . '&team=' . $userTeam;
 
 
 ?>
@@ -41,7 +41,6 @@
 			</div>
 		</div>
 		<div class="content">
-			<div class="container">
 				<div class="heading">
 					<h1><?php echo $league; ?> Standings</h1>
 				</div>
@@ -73,7 +72,7 @@
 								 	echo '<td>' . $row['name'] . '</td>';
 								 	echo '<td>' . $wins . '</td>';
 								 	echo '<td>' . $loss . '</td>';	
-								 	echo '<td>' . $pct . '</td>';								 							
+								 	echo '<td>' . round($pct, 2) . '</td>';								 							
 																
 								?>
 								</tr>
@@ -106,7 +105,7 @@
 								 	echo '<td>' . $row['name'] . '</td>';
 								 	echo '<td>' . $wins . '</td>';
 								 	echo '<td>' . $loss . '</td>';	
-								 	echo '<td>' . $pct . '</td>';								 							
+								 	echo '<td>' . round($pct, 2). '</td>';								 							
 																
 								?>
 								</tr>
@@ -139,7 +138,7 @@
 								 	echo '<td>' . $row['name'] . '</td>';
 								 	echo '<td>' . $wins . '</td>';
 								 	echo '<td>' . $loss . '</td>';	
-								 	echo '<td>' . $pct . '</td>';								 							
+								 	echo '<td>' . round($pct, 2) . '</td>';								 							
 																
 								?>
 								</tr>
@@ -172,7 +171,7 @@
 								 	echo '<td>' . $row['name'] . '</td>';
 								 	echo '<td>' . $wins . '</td>';
 								 	echo '<td>' . $loss . '</td>';	
-								 	echo '<td>' . $pct . '</td>';								 							
+								 	echo '<td>' . round($pct, 2) . '</td>';								 							
 																
 								?>
 								</tr>
@@ -208,7 +207,7 @@
 								 	echo '<td>' . $row['name'] . '</td>';
 								 	echo '<td>' . $wins . '</td>';
 								 	echo '<td>' . $loss . '</td>';	
-								 	echo '<td>' . $pct . '</td>';								 							
+								 	echo '<td>' . round($pct, 2) . '</td>';								 							
 																
 								?>
 								</tr>
@@ -241,7 +240,7 @@
 								 	echo '<td>' . $row['name'] . '</td>';
 								 	echo '<td>' . $wins . '</td>';
 								 	echo '<td>' . $loss . '</td>';	
-								 	echo '<td>' . $pct . '</td>';								 							
+								 	echo '<td>' . round($pct, 2) . '</td>';								 							
 																
 								?>
 								</tr>
@@ -274,7 +273,7 @@
 								 	echo '<td>' . $row['name'] . '</td>';
 								 	echo '<td>' . $wins . '</td>';
 								 	echo '<td>' . $loss . '</td>';	
-								 	echo '<td>' . $pct . '</td>';								 							
+								 	echo '<td>' . round($pct, 2) . '</td>';								 							
 																
 								?>
 								</tr>
@@ -307,7 +306,7 @@
 								 	echo '<td>' . $row['name'] . '</td>';
 								 	echo '<td>' . $wins . '</td>';
 								 	echo '<td>' . $loss . '</td>';	
-								 	echo '<td>' . $pct . '</td>';								 							
+								 	echo '<td>' . round($pct, 2) . '</td>';								 							
 																
 								?>
 								</tr>
@@ -315,7 +314,6 @@
 						</tbody>						
 					</table>						
 				</div>				
-			</div>
 		</div>
 	</div>
 </body>

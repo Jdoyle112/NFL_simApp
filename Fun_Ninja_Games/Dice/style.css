@@ -1,0 +1,110 @@
+html, body {
+	height: 100%;
+}
+
+
+
+/*    header    */
+
+
+.header {
+	height: 125px;
+}
+
+.header + div {
+	height: 125px;
+}
+
+.header img {
+	width: 125px;
+	height: auto;
+}
+
+.title {
+	line-height: 75px;
+	text-align: center;
+}
+
+.dropdown {
+	margin-top: 41.5px;
+}
+
+
+
+/*    SETTINGS    */
+
+
+label > input {
+	display: none;
+}
+
+.selected {
+	 border:1px solid #4D90FE;
+	box-shadow: 0px 0px 4px 0px #4D90FE;
+}
+
+.label_thumbs {
+	position: relative;
+	margin: 0 2%;
+}
+
+.thumbnail {
+		width: 75px !important;
+	height: 75px !important;
+}
+
+.close {
+	position: absolute;
+	top: 2px;
+	right: 2px;
+	z-index: 100;
+	color: #F90101;
+	font-weight: bold;
+	opacity: .5;
+	text-align: center;
+    font-size: 22px;
+    line-height: 10px;
+    border-radius: 50%;
+}
+
+.close:hover {
+	opacity: 1;
+	color: #F90101;
+}
+
+.dropdown-menu .form {
+	padding: 15px;
+}
+
+.btn .dropdown-toggle {
+	background-color: transparent;
+}
+
+.accounts {
+	height: 50px;
+}
+
+.accounts ul {
+	list-style-type: none;
+	text-align: center;
+	height: 50px;
+	padding: 0;
+}
+
+.accounts ul li {
+	display: inline-block;
+	padding: 10px 10px 0;
+	font-size: 18px;
+}
+
+
+
+
+
+
+
+
+
+
+
+

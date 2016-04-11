@@ -11,7 +11,7 @@
 	
 	// links
 	$resources = "resources/views/";
-	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId;
+	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId . '&team=' . $userTeam;
 
 
 ?>

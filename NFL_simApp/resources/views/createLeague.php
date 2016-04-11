@@ -185,6 +185,7 @@
 
 ?>
 <?php include(ROOT_PATH . 'resources/includes/header.php'); ?>
+	<div class="container create_container">
 		<h1>Create a New League</h1>
 		    <?php
                 if (!isset($error_message)) {
@@ -195,42 +196,27 @@
             ?>
 		<div>
 			<form method="post" action="<?php echo "http://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']; ?>/">
-
-                <table>
-                    <tr>
-                        <th>
-                            <label for="name">League Name</label>
-                        </th>
-                        <td>
-                            <input type="text" name="league_name" id="name">
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th>
-                            <label for="team">Select a Team</label>
-                        </th>
-                        <td>
-                          	  	<select id="team" name="team">
-                          	  	<?php
-                            		include('../includes/core/generateTeams.php');
-				                	foreach ($teamNames as $key => $teams) { ?>
-				                    	<option value="<?php echo $teams['name']; ?>"><?php echo $teams['name']; ?></option>	
-				                	<?php	}  ?>                  	
-                            	</select>
-                        </td>
-                    </tr> 
-                </table>
-                <input type="submit" value="Send">
-
+                <label for="name">League Name</label>
+                <input class="form-control" type="text" name="league_name" id="name">
+               
+                <label for="team">Select a Team</label>
+                <select class="form-control" id="team" name="team">
+                <?php
+                    include('../includes/core/generateTeams.php');
+				    foreach ($teamNames as $key => $teams) { ?>
+				    	<option value="<?php echo $teams['name']; ?>"><?php echo $teams['name']; ?></option>	
+				    <?php	}  ?>                  	
+                </select>
+                <input class="btn btn-primary" type="submit" value="Send">
 			</form>
 		</div>
 		<?php if(!isset($username)){ 
-			include 'login.php';
+			//include 'login.php';
+			echo '<p>You must be logged in to view your teams!</p>';
+			echo '<a href="login.php">Log in Here</a>';
 		} else{ ?>
 			<div class="myLeagues">
 				<h1>My Leagues</h1>
-				<div class="league">
 					<?php
 						// get team id's from userTeams
 						$sql = "SELECT team_id FROM UserTeams WHERE user_id = $userId";
@@ -261,18 +247,19 @@
 									//var_dump($lgName);
 									$lgName = $lgName[0]['name'];							
 								?>
+								<div class="league">
 								<a href="<?php echo BASE_URL . 'resources/views/leagueDash.php?team=' . $val['name'] . '&league=' . $lgName . '&seasId=' . $seasId; ?>">
 									<h4><?php echo $val['name']; ?></h4>
 									<p><?php echo $lgName; ?></p>
 								</a>
+								</div>
 							<?php } 
 						}
 
 					?>
-
-				</div>
 			</div>
 		<?php } ?>	
+		</div>
 	</body>
 </html>
 

@@ -10,7 +10,7 @@
 
 	// links
 	$resources = "resources/views/";
-	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId;
+	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId . '&team=' . $userTeam;
 
 
 	if(!isset($team)){
@@ -71,11 +71,11 @@
 		</div>
 		<div class="content">
 			<div class="heading">
-				<h1><?php echo $userTeam; ?><?php echo $team; ?> Roster</h1>
+				<h1><?php if(isset($team)){echo $team;}else{echo $userTeam;}; ?> Roster</h1>
 			</div>
 
-			<div>
-				<form method="post" action="<?php echo "http://" . $_SERVER['HTTP_HOST'] . '/NFL_simApp/resources/views/rosters.php?league=' . $league . '&seasId=' . $seasonId; ?>">
+			<div class="players_form">
+				<form method="post" action="<?php echo "http://" . $_SERVER['HTTP_HOST'] . '/NFL_simApp/resources/views/rosters.php' . $link; ?>">
 					<select id="team" name="team">
 		            <?php
 		                include('../includes/core/generateTeams.php');
@@ -86,17 +86,15 @@
 		            <input type="submit" value="Send">
 				</form>
 			</div>
-
-			<div class='usrRoster'>
 				<table class="table table-responsive table-bordered">
-					<th>
+					<thead>
 						<tr>
 							<th>Name</th>
 							<th>Position</th>
 							<th>Overall</th>
 							<th>Health</th>
 						</tr>
-					</th>
+					</thead>
 					<tbody>		
 						<?php foreach ($teamPlayers as $key => $value){ ?>
 							<?php foreach ($value as $row){ ?>
@@ -109,8 +107,7 @@
 							<?php } ?>
 						<?php } ?>
 					</tbody>
-				</table>		
-			</div>			
+				</table>				
 		</div>
 	</div>
 	

@@ -31,7 +31,7 @@
 
 	// links
 	$resources = "resources/views/";
-	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId;
+	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId . '&team=' . $userTeam;
 
 ?>
 <?php include(ROOT_PATH . 'resources/includes/header.php'); ?>
@@ -100,7 +100,7 @@
 								$awayTeam = $games['away_team'];
 								$homeScore = $games['home_score'];
 								$awayScore = $games['away_score'];
-								$box = "<a href='".BASE_URL . $resources.'boxScore.php?id='.$value.'&league='.$league.'&seasId='.$seasonId."'>";
+								$box = "<a href='".BASE_URL . $resources.'boxScore.php?id='.$value.'&league='.$league.'&seasId='.$seasonId.'&team='.$userTeam."'>";
 								echo '<tr>';
 								if($homeTeam == $teamId){
 									// select away

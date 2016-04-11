@@ -65,6 +65,8 @@ class Game {
 	public $team;
 	public $key;
 	public $playerId;
+	public $check;
+
 
 	public function getGame($gameId){
 		require(ROOT_PATH . "config.php");
@@ -87,8 +89,8 @@ class Game {
 			'td' => 0,
 			'interceptions' => 0,
 			'fumbles' => 0,
-			'receptions' => 0,
 			'carries' => 0,
+			'receptions' => 0,
 			'sacks' => 0,
 			'tackles' => 0,
 		);
@@ -218,7 +220,7 @@ class Game {
 		$this->advantages($tightEnds);
 		$this->passPlayerStats($this->passPlays, $qbs, $this->p);
 		$this->recPlayerStats($receivers);
-		$this->runPlayerStats($this->runPlays, $runningBacks, $this->p);
+		$this->runPlayerStats($this->runPlays, $runningBacks, $this->r);
 		$this->defStats($defPlayers, $this->p, $this->r);
 		$this-> fumble();
 		// $this->fumble();		call when player yards stats are ready
@@ -361,14 +363,40 @@ class Game {
 
 	public function runPlayerStats($runPlays, $runningBacks, $r){
 
-		for($t = 0; $t < 2; $t++){
-			$rbYPC[] = $runningBacks[$t][0][2];		// rb YPC from starter
-			$chance = rand(-10, 10) / 10;
-			$rbYPCr[] = round(($rbYPC[$t] * $r[$t]) + $chance);
-
-			for($x = 0; $x < $runPlays[$t]; $x++){
-				$this->rushYrds[$t] += $rbYPCr[$t];
-				$this->td('rush', $t, $this->p, $this->r);
+		for($t = 0; $t < 2; $t++){		// each team
+			// loop each play and determine which rb gets carry
+			for($x = 0; $x < $runPlays[$t]; $x++){			
+				for($i = 0; $i < 2; $i++){		// each RB on team
+					$rbYPC[$t][] = $runningBacks[$t][$i][2];		// rb YPC 
+					$chance = rand(-10, 10) / 10;
+					$rbYPCr[$t][] = round(($rbYPC[$t][$i] * $r[$t]) + $chance);
+					$rbO[$t][] = $runningBacks[$t][$i][1];		// rb OVr
+				}
+				// determine rb split carries
+				$rate = $rbO[$t][0] + $rbO[$t][1];
+				$rate = ($rbO[$t][0] / $rate) * 100;
+				$chance = rand(1, 100);
+				if($chance <= $rate){
+					// first rb gets carry
+					$this->findPlayerIndex($this->team[$t], $runningBacks[$t][0][0]);
+					$this->team[$t][$this->key]['0']['carries'] += 1;	
+					$this->team[$t][$this->key]['0']['yards'] += $rbYPCr[$t][0];		// add rb yards
+					$this->rushYrds[$t] += $rbYPCr[$t][0];		// team rush yards
+					$this->td('rush', $t, $this->p, $this->r);
+					if($this->check){
+						$this->team[$t][$this->key]['0']['td'] += 1;		// TD
+					}
+				}else{
+					// 2nd rb get's carry
+					$this->findPlayerIndex($this->team[$t], $runningBacks[$t][1][0]);
+					$this->team[$t][$this->key]['0']['carries'] += 1;	
+					$this->team[$t][$this->key]['0']['yards'] += $rbYPCr[$t][1];		// add rb yards
+					$this->rushYrds[$t] += $rbYPCr[$t][1];		// team rush yards
+					$this->td('rush', $t, $this->p, $this->r);	
+					if($this->check){
+						$this->team[$t][$this->key]['0']['td'] += 1;		// TD
+					}										
+				}
 			}
 		}
 
@@ -414,13 +442,14 @@ class Game {
 
 
 	public function td($play, $t, $p, $r){
-
+		$this->check = false;
 		$chance = rand(1, 100);
 		$c = rand(-5, 5) / 10;
 		if($play == 'rush'){
 			if($chance <= (3 / $r[$t] + $c)){	// 3% change of rushing TD/ attmpt factoring rush adv.
 				$this->rushTd[$t] += 1;
 				$this->Td[$t] += 1;
+				$this->check = true;
 			}
 
 		} else if($play == 'pass'){
@@ -428,6 +457,7 @@ class Game {
 			if($chance <= (4.5 * $p[$t] + $c)){	  // 4.5% chance pass td/ attmpt factoring adv.
 				$this->passTd[$t] += 1;
 				$this->Td[$t] += 1;
+				$this->check = true;
 			}
 		}
 		// creat td's based on team adv's and assign to players with min stat line (Qb's and receivers share TD)
@@ -671,6 +701,9 @@ class Game {
 		echo $this->team[1][19]['first_name'] . " has " . $this->team[1][19]['0']['sacks'] . "<br>";
 		echo $this->team[1][20]['first_name'] . " has " . $this->team[1][20]['0']['sacks'] . "<br>";*/
 
+				echo "home total rush yards: " . $this->rushYrds[0] . "<br>";
+		echo "away total rush yards: " . $this->rushYrds[1] . "<br>";
+
 
 		// insert into PlayerStatsGame db (loop through each player, and insert their stats to db)
 		for ($t=0; $t < 2; $t++) { 
@@ -693,6 +726,7 @@ class Game {
 					$td1 = $value[0]['td'];
 					$int1 = $value[0]['interceptions'];
 					$fum = $value[0]['fumbles'];
+					$carries = $value[0]['carries'];
 					$sck = $value[0]['sacks'];
 					$rec1 = $value[0]['receptions'];
 					$tck = $value[0]['tackles'];
@@ -723,6 +757,7 @@ class Game {
 							"td = td + :tds,".
 							"interceptions = interceptions + :int,".
 							"fumbles = fumbles + :fum,".
+							"carries = carries + :carries,".
 							"yards = yards + :yrds,".
 							"tackles = tackles + :tckls,".
 							"sacks = sacks + :sacks,".
@@ -734,6 +769,7 @@ class Game {
 							$result->bindParam(":tds", $td1, PDO::PARAM_INT);
 							$result->bindParam(":int", $int1, PDO::PARAM_INT);
 							$result->bindParam(":fum", $fum, PDO::PARAM_INT);
+							$result->bindParam(":carries", $carries, PDO::PARAM_INT);
 							$result->bindParam(":yrds", $yrd, PDO::PARAM_INT);
 							$result->bindParam(":tckls", $tck, PDO::PARAM_INT);
 							$result->bindParam(":sacks", $sck, PDO::PARAM_INT);

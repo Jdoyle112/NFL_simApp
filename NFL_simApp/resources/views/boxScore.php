@@ -17,7 +17,7 @@
 
 	// links
 	$resources = "resources/views/";
-	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId;
+	$link = '?team=' . $userTeam . '&league=' . $league . '&seasId=' . $seasonId . '&team=' . $userTeam;
 
 
 	if(isset($gameId)){
@@ -143,6 +143,7 @@
 						<th>Td's</th>
 						<th>Int</th>
 						<th>Yards</th>
+						<th>Carries</th>
 						<th>Rec</th>
 						<th>Fum</th>
 						<th>Tackle</th>
@@ -151,7 +152,7 @@
 					<tbody>
 						<?php
 
-						$sql = "SELECT TeamPlayers.player_id, PlayerStatsGame.completions, PlayerStatsGame.td, PlayerStatsGame.interceptions, PlayerStatsGame.yards, PlayerStatsGame.receptions, PlayerStatsGame.fumbles, PlayerStatsGame.tackles, PlayerStatsGame.sacks FROM TeamPlayers INNER JOIN PlayerStatsGame ON TeamPlayers.team_player_id = PlayerStatsGame.team_player_id WHERE TeamPlayers.team_id = $teamId AND PlayerStatsGame.game_id = $gameId";
+						$sql = "SELECT TeamPlayers.player_id, PlayerStatsGame.completions, PlayerStatsGame.td, PlayerStatsGame.interceptions, PlayerStatsGame.yards, PlayerStatsGame.carries, PlayerStatsGame.receptions, PlayerStatsGame.fumbles, PlayerStatsGame.tackles, PlayerStatsGame.sacks FROM TeamPlayers INNER JOIN PlayerStatsGame ON TeamPlayers.team_player_id = PlayerStatsGame.team_player_id WHERE TeamPlayers.team_id = $teamId AND PlayerStatsGame.game_id = $gameId";
 						$results = $db->query($sql);
 						$results = $results->fetchAll(PDO::FETCH_ASSOC);
 						foreach ($results as $key => $value) { 
@@ -161,6 +162,7 @@
 						 	$td = $value['td'];
 						 	$inter = $value['interceptions'];
 							$yrd = $value['yards'];
+							$yrd = $value['carries'];
 						 	$rec = $value['receptions'];
 						 	$fum = $value['fumbles'];
 						 	$tck = $value['tackles'];
@@ -175,6 +177,7 @@
 						 	echo '<td>' . $td . '</td>';
 						 	echo '<td>' . $inter . '</td>';
 						 	echo '<td>' . $yrd . '</td>';
+						 	echo '<td>' . $car . '</td>';
 						 	echo '<td>' . $rec . '</td>';
 							echo '<td>' . $fum . '</td>';	
 							echo '<td>' . $tck . '</td>';
